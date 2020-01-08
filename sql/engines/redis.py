@@ -34,16 +34,22 @@ class RedisEngine(EngineBase):
     def info(self):
         return 'Redis engine'
 
+    # def get_all_databases(self):
+    #     """
+    #     获取数据库列表
+    #     :return:
+    #     """
+    #     result = ResultSet(full_sql='CONFIG GET databases')
+    #     conn = self.get_connection()
+    #     rows = conn.config_get('databases')['databases']
+    #     db_list = [str(x) for x in range(int(rows))]
+    #     result.rows = db_list
+    #     return result
+
+    # 将Redis上线数据库固定为0(不合理需求)
     def get_all_databases(self):
-        """
-        获取数据库列表
-        :return:
-        """
         result = ResultSet(full_sql='CONFIG GET databases')
-        conn = self.get_connection()
-        rows = conn.config_get('databases')['databases']
-        db_list = [str(x) for x in range(int(rows))]
-        result.rows = db_list
+        result.rows = ['0']
         return result
 
     def query_check(self, db_name=None, sql='', limit_num=0):
