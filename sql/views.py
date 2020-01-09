@@ -25,6 +25,7 @@ from sql.utils.workflow_audit import Audit
 from sql.utils.sql_review import can_execute, can_timingtask, can_cancel, can_view, can_rollback
 from common.utils.const import Const, WorkflowDict
 from sql.utils.resource_group import user_groups
+from common import oidcrp, auth
 
 import logging
 
@@ -41,8 +42,15 @@ def login(request):
     if request.user and request.user.is_authenticated:
         return HttpResponseRedirect('/')
 
+    if SysConfig().get("oidc_enable"):
+        return oidcrp.authenticate(request)
+
     return render(request, 'login.html', context={'sign_up_enabled': SysConfig().get('sign_up_enabled')})
 
+def logout(request):
+    if SysConfig().get("oidc_enable"):
+        return oidcrp.sign_out(request)
+    return auth.sign_out(request)
 
 @permission_required('sql.menu_dashboard', raise_exception=True)
 def dashboard(request):

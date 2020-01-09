@@ -7,7 +7,8 @@ IGNORE_URL = [
     '/login/',
     '/authenticate/',
     '/signup/',
-    '/api/info'
+    '/api/info',
+    '/oauth/callback/',
 ]
 
 IGNORE_URL_RE = r'/admin/\w*'

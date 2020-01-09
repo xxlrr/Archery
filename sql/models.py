@@ -15,6 +15,15 @@ class Users(AbstractUser):
     wx_user_id = models.CharField('企业微信UserID', max_length=64, blank=True, null=True)
     failed_login_count = models.IntegerField('失败计数', default=0)
     last_login_failed_at = models.DateTimeField('上次失败登录时间', blank=True, null=True)
+    email = models.EmailField(_('email address'),
+                              blank=False,
+                              unique=True,
+                              null = False,
+                              max_length=150,
+                              help_text=_('Required. 254 characters or fewer. Letters, digits and @/./+/-/_ only.'),
+                              error_messages={
+                                  'unique': _("A user with that email already exists."),
+                              },)
 
     def save(self, *args, **kwargs):
         self.failed_login_count = min(127, self.failed_login_count)

@@ -6,7 +6,7 @@ from django.views.i18n import JavaScriptCatalog
 import sql.instance_database
 import sql.query_privileges
 import sql.sql_optimize
-from common import auth, config, workflow, dashboard, check
+from common import auth, config, workflow, dashboard, check, oidcrp
 from sql import views, sql_workflow, sql_analyze, query, slowlog, instance, instance_account, db_diagnostic, \
     resource_group, binlog, data_dictionary
 from sql.utils import tasks
@@ -17,7 +17,7 @@ urlpatterns = [
     path('jsi18n/', JavaScriptCatalog.as_view(), name='javascript-catalog'),
     path('index/', views.index),
     path('login/', views.login, name='login'),
-    path('logout/', auth.sign_out),
+    path('logout/', views.logout),
     path('signup/', auth.sign_up),
     path('sqlworkflow/', views.sqlworkflow),
     path('submitsql/', views.submit_sql),
@@ -136,5 +136,7 @@ urlpatterns = [
     path('db_diagnostic/trxandlocks/', db_diagnostic.trxandlocks),
     path('db_diagnostic/innodb_trx/', db_diagnostic.innodb_trx),
 
-    path('4admin/sync_ding_user/', ding_api.sync_ding_user)
+    path('4admin/sync_ding_user/', ding_api.sync_ding_user),
+
+    path('oauth/callback/', oidcrp.callback),
 ]

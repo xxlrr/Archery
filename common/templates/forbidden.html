@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% load staticfiles %}
+    <meta charset="UTF-8">
+    <title>Forbidden</title>
+    <style>
+    #body {
+        width:fit-content;
+        margin: 15px auto;
+        padding: 20px;
+        border: 1px dotted #785;
+        line-height: 1.4;
+        font-family: Consolas;
+        border-radius:15px
+    }
+    </style>
+</head>
+<body>
+    <div id="body">
+        <h1>{{title}}</h1>
+        <hr />
+        <div id="context" >
+            <pre>
+                {{context}}
+            </pre>
+        </div>
+        <a id="logout" href="{{logout}}">goback</a>
+    </div>
+    <script src="{% static 'jquery/jquery.min.js' %}"></script>
+</body>
+</html>

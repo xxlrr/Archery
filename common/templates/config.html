@@ -627,6 +627,80 @@
                         <br>
                         <h4 style="color: darkgrey"><b>其他配置</b></h4>
                         <hr/>
+                        <h5 style="color: darkgrey"><b>OIDC认证</b></h5>
+                        <hr/>
+                        <div class="form-horizontal">
+                            <div class="form-group">
+                                <label for="oidc_enable"
+                                       class="col-sm-4 control-label">ENABLE_OIDC</label>
+                                <div class="col-sm-8">
+                                    <div class="switch switch-small">
+                                        <label>
+                                            <input id="oidc_enable"
+                                                   key="oidc_enable"
+                                                   value="{{ config.oidc_enable }}" type="checkbox">
+                                            开启OIDC认证
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="oidc_provider_url"
+                                       class="col-sm-4 control-label">ProviderURL</label>
+                                <div class="col-sm-5">
+                                    <input type="text" class="form-control"
+                                           id="oidc_provider_url"
+                                           key="oidc_provider_url"
+                                           value="{{ config.oidc_provider_url }}"
+                                           placeholder="ProviderURL">
+                                </div>
+                            </div>
+                                <div class="form-group">
+                                <label for="oidc_client_id"
+                                       class="col-sm-4 control-label">ClientID</label>
+                                <div class="col-sm-5">
+                                    <input type="text" class="form-control"
+                                           id="oidc_client_id"
+                                           key="oidc_client_id"
+                                           value="{{ config.oidc_client_id }}"
+                                           placeholder="ClientID">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="oidc_client_secret"
+                                       class="col-sm-4 control-label">ClientSecret</label>
+                                <div class="col-sm-5">
+                                    <input type="text" class="form-control"
+                                           id="oidc_client_secret"
+                                           key="oidc_client_secret"
+                                           value="{{ config.oidc_client_secret }}"
+                                           placeholder="ClientSecret">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="oidc_redirect_url"
+                                       class="col-sm-4 control-label">RedirectURL</label>
+                                <div class="col-sm-5">
+                                    <input type="text" class="form-control"
+                                           id="oidc_redirect_url"
+                                           key="oidc_redirect_url"
+                                           value="{{ config.oidc_redirect_url }}"
+                                           placeholder="RedirectURL">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="oidc_logout_url"
+                                       class="col-sm-4 control-label">LogoutURL</label>
+                                <div class="col-sm-5">
+                                    <input type="text" class="form-control"
+                                           id="oidc_logout_url"
+                                           key="oidc_logout_url"
+                                           value="{{ config.oidc_logout_url }}"
+                                           placeholder="LogoutURL">
+                                </div>
+                            </div>
+                        </div>
+
                         <h5 style="color: darkgrey"><b>阿里云认证信息</b></h5>
                         <h6 style="color:red">注：实例关联RDS实例ID后，会调用RDS接口获取慢日志、进程、表空间，其中进程和表空间需要管理权限的key</h6>
                         <hr/>
@@ -858,6 +932,19 @@
                     return;
                 }
             }
+            // 检查OIDC的必填信息
+            if ($("#enable_oidc").val() == 'true') {
+                var v1 = $("#provider_url").val();
+                var v1 = $("#client_id").val();
+                var v1 = $("#client_secret").val();
+                var v1 = $("#redirect_url").val();
+                var v1 = $("#logout_url").val();
+                if (v1 == "" || v2 == "" || v3 == "" || v4 == "" | v5 == "") {
+                    alert("请将OIDC信息填写完整!");
+                    return;
+                }
+            }
+
             var sys_config = $("#div-system-config");
             var configs = [];
             sys_config.find('[key]').each(

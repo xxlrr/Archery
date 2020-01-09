@@ -14,6 +14,25 @@ logger = logging.getLogger('default')
 
 
 class SysConfig(object):
+
+    _callee_list = []    # 订阅者列表
+
+    @classmethod
+    def subscribe(cls, func):
+        """
+        * 订阅更新通知，当config发生改变的时候会依次调用订阅的func起到通知作用
+        * 由于通知是单线程同步处理的，所以func不应该是耗时或已阻塞的
+        """
+        cls._callee_list.append(func)
+
+    @classmethod
+    def _broadcast(cls):
+        """
+        * 通知订阅者，该过程是单线程且同步的
+        """
+        for callee in cls._callee_list:
+            callee()
+
     def __init__(self):
         self.sys_config = {}
         self.get_all_config()
@@ -73,6 +92,7 @@ class SysConfig(object):
             logger.error(f"删除缓存失败:{m}{traceback.format_exc()}")
         finally:
             self.get_all_config()
+            self._broadcast()
 
     def replace(self, configs):
         result = {'status': 0, 'msg': 'ok', 'data': []}
@@ -89,6 +109,7 @@ class SysConfig(object):
             result['msg'] = str(e)
         finally:
             self.get_all_config()
+            self._broadcast()
         return result
 
     def purge(self):
