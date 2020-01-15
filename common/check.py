@@ -111,6 +111,7 @@ def email(request):
     mail_smtp_server = request.POST.get('mail_smtp_server', '')
     mail_smtp_port = request.POST.get('mail_smtp_port', '')
     mail_smtp_user = request.POST.get('mail_smtp_user', '')
+    mail_smtp_addr = request.POST.get('mail_smtp_addr', '')
     mail_smtp_password = request.POST.get('mail_smtp_password', '')
     if not mail:
         result['status'] = 1
@@ -132,7 +133,7 @@ def email(request):
     bd = 'Archery 邮件发送测试...'
     subj = 'Archery 邮件发送测试'
     sender = MsgSender(server=mail_smtp_server, port=mail_smtp_port, user=mail_smtp_user,
-                       password=mail_smtp_password, ssl=mail_ssl)
+                       password=mail_smtp_password, addr=mail_smtp_addr, ssl=mail_ssl)
     sender_response = sender.send_email(subj, bd, [request.user.email])
     if sender_response != 'success':
         result['status'] = 1

@@ -14,6 +14,7 @@ import traceback
 from common.utils.timer import FuncTimer
 from . import EngineBase
 from .models import ResultSet, ReviewSet, ReviewResult
+from common.config import SysConfig
 
 __author__ = 'hhyo'
 
@@ -58,6 +59,8 @@ class RedisEngine(EngineBase):
         safe_cmd = ["scan", "exists", "ttl", "pttl", "type", "get", "mget", "strlen",
                     "hgetall", "hexists", "hget", "hmget", "hkeys", "hvals",
                     "smembers", "scard", "sdiff", "sunion", "sismember", "llen", "lrange", "lindex"]
+        extend_safe_cmd = [SysConfig().get("redis_cmd_white_list", "").strip().split(',')]
+        safe_cmd.extend(extend_safe_cmd)
         # 命令校验，仅可以执行safe_cmd内的命令
         for cmd in safe_cmd:
             if re.match(fr'^{cmd}', sql.strip(), re.I):

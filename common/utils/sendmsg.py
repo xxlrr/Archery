@@ -22,7 +22,8 @@ class MsgSender(object):
         if kwargs:
             self.MAIL_REVIEW_SMTP_SERVER = kwargs.get('server')
             self.MAIL_REVIEW_SMTP_PORT = kwargs.get('port', 0)
-            self.MAIL_REVIEW_FROM_ADDR = kwargs.get('user')
+            self.MAIL_REVIEW_FROM_USER = kwargs.get('user')
+            self.MAIL_REVIEW_FROM_ADDR = kwargs.get('addr')
             self.MAIL_REVIEW_FROM_PASSWORD = kwargs.get('password')
             self.MAIL_SSL = kwargs.get('ssl')
         else:
@@ -31,7 +32,8 @@ class MsgSender(object):
             self.MAIL_REVIEW_SMTP_SERVER = sys_config.get('mail_smtp_server')
             self.MAIL_REVIEW_SMTP_PORT = sys_config.get('mail_smtp_port', 0)
             self.MAIL_SSL = sys_config.get('mail_ssl')
-            self.MAIL_REVIEW_FROM_ADDR = sys_config.get('mail_smtp_user')
+            self.MAIL_REVIEW_FROM_USER = kwargs.get('mail_smtp_user')
+            self.MAIL_REVIEW_FROM_ADDR = sys_config.get('mail_smtp_addr')
             self.MAIL_REVIEW_FROM_PASSWORD = sys_config.get('mail_smtp_password')
             # 钉钉信息
             self.ding_agent_id = sys_config.get('ding_agent_id')
@@ -110,7 +112,8 @@ class MsgSender(object):
 
                 # 如果提供的密码为空，则不需要登录
             if self.MAIL_REVIEW_FROM_PASSWORD:
-                server.login(self.MAIL_REVIEW_FROM_ADDR, self.MAIL_REVIEW_FROM_PASSWORD)
+                # server.login(self.MAIL_REVIEW_FROM_ADDR, self.MAIL_REVIEW_FROM_PASSWORD)
+                server.login(self.MAIL_REVIEW_FROM_USER, self.MAIL_REVIEW_FROM_PASSWORD)
             server.sendmail(self.MAIL_REVIEW_FROM_ADDR, to + list_cc, main_msg.as_string())
             server.quit()
             logger.debug(f'邮件推送成功\n消息标题:{subject}\n通知对象：{to + list_cc}\n消息内容：{body}')

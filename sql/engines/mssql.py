@@ -8,6 +8,7 @@ from . import EngineBase
 import pyodbc
 from .models import ResultSet, ReviewSet, ReviewResult
 from sql.utils.data_masking import brute_mask
+from common.config import SysConfig
 
 logger = logging.getLogger('default')
 
@@ -79,7 +80,7 @@ client charset = UTF-8;connect timeout=10;CHARSET={4};""".format(self.host, self
                            "string_escape", "string_split", "stuff", "substring", "trim", "unicode"]
         keyword_warning = ''
         star_patter = r"(^|,|\s)\*(\s|\(|$)"
-        sql_whitelist = ['select', 'sp_helptext']
+        sql_whitelist = ['select', SysConfig().get("mssql_cmd_white_list", "").strip().split(',')]
         # 根据白名单list拼接pattern语句
         whitelist_pattern = "^" + "|^".join(sql_whitelist)
         # 删除注释语句，进行语法判断，执行第一条有效sql

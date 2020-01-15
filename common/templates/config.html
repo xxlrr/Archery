@@ -343,6 +343,28 @@
                                            placeholder="管理员/DBA查询结果集限制">
                                 </div>
                             </div>
+                            <div class="form-group">
+                                <label for="redis_cmd_white_list"
+                                       class="col-sm-4 control-label">REDIS_CMD_WHITE_LIST</label>
+                                <div class="col-sm-5">
+                                    <input type="text" class="form-control"
+                                           id="redis_cmd_white_list"
+                                           key="redis_cmd_white_list"
+                                           value="{{ config.redis_cmd_white_list }}"
+                                           placeholder="Redis命令白名单，多条命令使用逗号间隔">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="mssql_cmd_white_list"
+                                       class="col-sm-4 control-label">MSSQL_CMD_WHITE_LIST</label>
+                                <div class="col-sm-5">
+                                    <input type="text" class="form-control"
+                                           id="mssql_cmd_white_list"
+                                           key="mssql_cmd_white_list"
+                                           value="{{ config.mssql_cmd_white_list }}"
+                                           placeholder="MSSQL命令白名单，多条命令使用逗号间隔">
+                                </div>
+                            </div>
                             <h5 style="color: darkgrey"><b>SQL优化</b></h5>
                             <hr/>
                             <div class="form-group">
@@ -465,6 +487,17 @@
                                                key="mail_smtp_password"
                                                value="{{ config.mail_smtp_password }}"
                                                placeholder="邮箱账号密码">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="mail_smtp_addr"
+                                           class="col-sm-4 control-label">MAIL_SMTP_ADDR</label>
+                                    <div class="col-sm-5">
+                                        <input type="text" class="form-control"
+                                               id="mail_smtp_addr"
+                                               key="mail_smtp_addr"
+                                               value="{{ config.mail_smtp_addr }}"
+                                               placeholder="发件人邮箱">
                                     </div>
                                 </div>
                                 <div class="form-group">
@@ -1152,6 +1185,7 @@
                     mail_smtp_server: $("#mail_smtp_server").val(),
                     mail_smtp_port: $("#mail_smtp_port").val(),
                     mail_smtp_user: $("#mail_smtp_user").val(),
+                    mail_smtp_addr: $("#mail_smtp_addr").val(),
                     mail_smtp_password: $("#mail_smtp_password").val(),
                 },
                 complete: function () {
