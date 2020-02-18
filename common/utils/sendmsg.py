@@ -32,7 +32,7 @@ class MsgSender(object):
             self.MAIL_REVIEW_SMTP_SERVER = sys_config.get('mail_smtp_server')
             self.MAIL_REVIEW_SMTP_PORT = sys_config.get('mail_smtp_port', 0)
             self.MAIL_SSL = sys_config.get('mail_ssl')
-            self.MAIL_REVIEW_FROM_USER = kwargs.get('mail_smtp_user')
+            self.MAIL_REVIEW_FROM_USER = sys_config.get('mail_smtp_user')
             self.MAIL_REVIEW_FROM_ADDR = sys_config.get('mail_smtp_addr')
             self.MAIL_REVIEW_FROM_PASSWORD = sys_config.get('mail_smtp_password')
             # 钉钉信息
@@ -105,6 +105,7 @@ class MsgSender(object):
             main_msg['Cc'] = ', '.join(str(cc) for cc in list(set(list_cc)))
             main_msg['Date'] = email.utils.formatdate()
 
+            print(self.MAIL_REVIEW_SMTP_SERVER,self.MAIL_REVIEW_SMTP_PORT,self.MAIL_REVIEW_FROM_USER,self.MAIL_REVIEW_FROM_PASSWORD,self.MAIL_REVIEW_FROM_ADDR)
             if self.MAIL_SSL:
                 server = smtplib.SMTP_SSL(self.MAIL_REVIEW_SMTP_SERVER, self.MAIL_REVIEW_SMTP_PORT, timeout=3)
             else:
