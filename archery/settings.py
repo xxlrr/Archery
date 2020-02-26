@@ -87,6 +87,7 @@ STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'common/static'), ]
 STATICFILES_STORAGE = 'common.storage.ForgivingManifestStaticFilesStorage'
+DOWNLOAD_DIR =os.path.join(BASE_DIR, 'downloads')
 
 # 扩展django admin里users字段用到，指定了sql/models.py里的class users
 AUTH_USER_MODEL = "sql.Users"
@@ -148,6 +149,8 @@ Q_CLUSTER = {
     'save_limit': 0,
     'queue_limit': 50,
     'label': 'Django Q',
+    'scheduler': True,
+    'catch_up': False,
     'django_redis': 'default',
     'sync': False  # 本地调试可以修改为True，使用同步模式
 }

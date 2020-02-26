@@ -49,7 +49,7 @@ def sql_workflow_list(request):
     user = request.user
 
     # 组合筛选项
-    filter_dict = dict()
+    filter_dict = {'order_type': 'common_order'}
     # 工单状态
     if nav_status:
         filter_dict['status'] = nav_status
@@ -273,6 +273,7 @@ def passed(request):
     if workflow_id == 0:
         context = {'errMsg': 'workflow_id参数为空.'}
         return render(request, 'error.html', context)
+    sql_workflow = SqlWorkflow.objects.get(id=workflow_id)
 
     user = request.user
     if Audit.can_review(user, workflow_id, 2) is False:
@@ -290,8 +291,13 @@ def passed(request):
 
             # 按照审核结果更新业务表审核状态
             if audit_result['data']['workflow_status'] == WorkflowDict.workflow_status['audit_success']:
-                # 将流程状态修改为审核通过
-                SqlWorkflow(id=workflow_id, status='workflow_review_pass').save(update_fields=['status'])
+                if sql_workflow.order_type == 'common_order':
+                    sql_workflow.status = 'workflow_review_pass'
+                elif sql_workflow.order_type == 'sqlcron_order':
+                    sql_workflow.schedule.repeats = -1     # 开启调度任务
+                    sql_workflow.schedule.save()
+                    sql_workflow.status='workflow_review_pass'
+                sql_workflow.save()
     except Exception as msg:
         logger.error(f"审核工单报错，错误信息：{traceback.format_exc()}")
         context = {'errMsg': msg}
@@ -301,7 +307,10 @@ def passed(request):
         async_task(notify_for_audit, audit_id=audit_id, audit_remark=audit_remark, timeout=60,
                    task_name=f'sqlreview-pass-{workflow_id}')
 
-    return HttpResponseRedirect(reverse('sql:detail', args=(workflow_id,)))
+    redirect = reverse('sql:sqlcrondetail', args=(workflow_id,))\
+        if sql_workflow.order_type == 'sqlcron_order' \
+        else reverse('sql:detail', args=(workflow_id,))
+    return HttpResponseRedirect(redirect)
 
 
 def execute(request):
@@ -494,7 +503,11 @@ def cancel(request):
         if audit_detail.current_status == WorkflowDict.workflow_status['audit_abort']:
             async_task(notify_for_audit, audit_id=audit_detail.audit_id, audit_remark=audit_remark, timeout=60,
                        task_name=f'sqlreview-cancel-{workflow_id}')
-    return HttpResponseRedirect(reverse('sql:detail', args=(workflow_id,)))
+
+    redirect = reverse('sql:sqlcrondetail', args=(workflow_id,)) \
+        if workflow_detail.order_type == 'sqlcron_order' \
+        else reverse('sql:detail', args=(workflow_id,))
+    return HttpResponseRedirect(redirect)
 
 
 def get_workflow_status(request):

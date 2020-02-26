@@ -8,7 +8,7 @@ import sql.query_privileges
 import sql.sql_optimize
 from common import auth, config, workflow, dashboard, check, oidcrp
 from sql import views, sql_workflow, sql_analyze, query, slowlog, instance, instance_account, db_diagnostic, \
-    resource_group, binlog, data_dictionary
+    resource_group, binlog, data_dictionary, sqlcron
 from sql.utils import tasks
 from common.utils import ding_api
 
@@ -139,4 +139,17 @@ urlpatterns = [
     path('4admin/sync_ding_user/', ding_api.sync_ding_user),
 
     path('oauth/callback/', oidcrp.callback),
+
+    path('sqlcron/manage/', views.sqlcronmanage),
+    path('sqlcron/newexec/', views.sqlcronnewexec),
+    path('sqlcron/newquery/', views.sqlcronnewquery),
+    path('sqlcron/detail/<int:workflow_id>/', views.sqlcrondetail, name='sqlcrondetail'),
+
+    path('sqlcron/list/', sqlcron.list),
+    path('sqlcron/exec/new/', sqlcron.newexec),
+    path('sqlcron/query/new/', sqlcron.newquery),
+
+    path('sqlcron/pause/',  sqlcron.pause),
+    path('sqlcron/resume/', sqlcron.resume),
+    path('sqlcron/stop/', sqlcron.stop),
 ]

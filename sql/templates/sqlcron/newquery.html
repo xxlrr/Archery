@@ -1,0 +1,822 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="row clearfix">
+        <div class="col-md-12">
+            <div class="panel panel-default">
+                <div class="panel-heading form-inline">
+                    新增查询任务
+                </div>
+                <div class="panel-body">
+                    <form id="form-sqlquery" action="/sqlcron/query/new/" method="post" class="form-horizontal" role="form">
+                        {% csrf_token %}
+                        <input type="hidden" id="workflow_id" name="workflow_id"/>
+                        <div class="col-md-9 column">
+                            <pre id="sql_content_editor" style="min-height:500px"></pre>
+                        </div>
+                        <div style="display: none" class="col-md-8 column">
+                            <textarea id="sql_content" name="sql_content" class="form-control" data-name="SQL内容"
+                                      data-placeholder="SQL内容不能为空！"
+                                      placeholder="请在此提交SQL，请以分号结尾。" rows=20
+                                      required></textarea>
+                        </div>
+                        <div class="col-md-3 column">
+                            <div class="form-group">
+                                <input id="workflow_name" type="text" autocomplete="off" name="workflow_name"
+                                       class="form-control"
+                                       data-name="任务名称" data-placeholder="请输入任务名称！"
+                                       placeholder="请输入任务名称，如:XX项目会员功能建表"
+                                       required>
+                            </div>
+                            <div class="form-group">
+                                <input id="demand_url" type="text" autocomplete="off" name="demand_url" class="form-control"
+                                       data-name="需求链接" data-placeholder="请提供需求链接，记录任务需求信息！"
+                                       placeholder="请输入需求链接">
+                            </div>
+                            <div class="form-group">
+                                <select id="group_name" name="group_name"
+                                        class="selectpicker show-tick form-control bs-select-hidden"
+                                        data-name="组" data-placeholder="请选择组！"
+                                        title="请选择组"
+                                        data-live-search="true" required>
+                                    {% for group in group_list %}
+                                        <option value="{{ group.group_name }}">{{ group.group_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <select id="instance_name" name="instance_name"
+                                        class="selectpicker show-tick form-control bs-select-hidden"
+                                        data-live-search="true"
+                                        title="请选择实例:"
+                                        data-placeholder="请选择实例:" required>
+                                    <optgroup id="optgroup-mysql" label="MySQL"></optgroup>
+                                    <optgroup id="optgroup-mssql" label="MsSQL"></optgroup>
+                                    <optgroup id="optgroup-redis" label="Redis"></optgroup>
+                                    <optgroup id="optgroup-pgsql" label="PgSQL"></optgroup>
+                                    <optgroup id="optgroup-oracle" label="Oracle"></optgroup>
+                                    <optgroup id="optgroup-mongo" label="Mongo"></optgroup>
+                                    <optgroup id="optgroup-phoenix" label="Phoenix"></optgroup>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <select id="db_name" name="db_name"
+                                        class="form-control selectpicker show-tick bs-select-hidden"
+                                        data-live-search="true"
+                                        title="请选择数据库:"
+                                        data-placeholder="请选择数据库:" required>
+                                </select>
+                            </div>
+                            <div id="div-schema_name" class="form-group" style="display: none">
+                                <select id="schema_name" name="schema_name"
+                                        class="form-control selectpicker show-tick bs-select-hidden"
+                                        data-live-search="true"
+                                        title="请选择模式:"
+                                        data-placeholder="请选择模式:" required>
+                                </select>
+                            </div>
+                            <div id="div-table_name" class="form-group">
+                                <select id="table_name" name="table_name"
+                                        class="form-control selectpicker show-tick bs-select-hidden"
+                                        data-live-search="true"
+                                        data-name="查看表结构"
+                                        title="查看表结构:"
+                                        data-placeholder="查看表结构:">
+                                </select>
+                            </div>
+<!--                            <div class="form-group">-->
+<!--                                <select id="limit_num" name="limit_num"-->
+<!--                                        class="form-control selectpicker show-tick bs-select-hidden"-->
+<!--                                        data-placeholder="返回行数:" required>-->
+<!--                                    <option value="is-empty" disabled="">返回行数:</option>-->
+<!--                                    <option value=100 selected="selected">100</option>-->
+<!--                                    <option value=500>500</option>-->
+<!--                                    <option value=1000>1000</option>-->
+<!--                                    <option value=0>max(最大限制行数)</option>-->
+<!--                                </select>-->
+<!--                            </div>-->
+                            <!--首次执行时间-->
+                            <div class="form-group">
+                                <input type="hidden" id="first_run_time" name="first_run_time">
+                                <input type="text" id="input_first_run_time" readonly
+                                       value="请选择首次执行时间"
+                                       data-placeholder="请选择首次执行时间"
+                                       style="background-color: #fff;color: #999 "
+                                       class="form-control "
+                                       required />
+                            </div>
+                            <!--重复周期-->
+                            <div class="form-group dropdown">
+                                <input type="hidden" id="period" name="period"/>
+                                <input type="text" id="input_period" readonly
+                                    value="请输入重复周期"
+                                    data-placeholder="请输入重复周期"
+                                    style="background-color: #fff;color: #999"
+                                    class="form-control"
+                                    data-toggle="dropdown"
+                                    required />
+
+                                <div class="dropdown-menu" aria-labelledby="dropdownMenuLink">
+                                    <li><a class="dropdown-item" onclick="period_select('O')">单次</a></li>
+                                    <li><a class="dropdown-item" onclick="period_select('H')">每小时</a></li>
+                                    <li><a class="dropdown-item" onclick="period_select('D')">每天</a></li>
+                                    <li><a class="dropdown-item" onclick="period_select('W')">每周</a></li>
+                                    <li><a class="dropdown-item" onclick="period_select('M')">每月</a></li>
+                                    <li><a class="dropdown-item" onclick="period_select('Y')">每年</a></li>
+                                    <li class="divider"></li>
+                                    <li>
+                                        <a class="dropdown-item" id="link_minutes" onclick="period_select('I', $('#input_minutes').val())">
+                                            每
+                                            <input type="hidden" id="minutes" name="minutes"/>
+                                            <input type="text" id="input_minutes"
+                                                   style="text-align:right;"
+                                                   size="2" min="1" value="10"
+                                                   oninput="value=value.replace(/[^\d]/g,'')"
+                                                   onchange="$('#link_minutes').click()"/>
+                                            分钟
+                                        </a>
+                                    </li>
+                                </div>
+                            </div>
+                            <!--重复次数-->
+                            <!--todo 重复次数-->
+                            <div class="form-group">
+                                <select id="receivers" name="receivers"
+                                        class="selectpicker show-tick form-control bs-select-hidden "
+                                        multiple="multiple"
+                                        data-name="接收人"
+                                        data-live-search="true"
+                                        data-selected-text-format="count > 2"
+                                        data-placeholder="增加接收人"
+                                        data-none-selected-text="增加接收人">
+                                    {% for user_info in active_user %}
+                                        <option value="{{ user_info.username }}">{{ user_info.display }}({{ user_info.username }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <!--todo: 其他接收人-->
+<!--                            <div class="from-group">-->
+<!--                                <input type="text" id="cc_list" name="cc_list"-->
+<!--                                       onchange="checkEmailList(this.val())"-->
+<!--                                />-->
+<!--                            </div>-->
+                            <!--审批流程-->
+                            <input type="hidden" id="workflow_auditors" name="workflow_auditors" data-name="审批流程"
+                                   data-placeholder="请配置审批流程！" required>
+                            <div id="div-workflow_auditors" class="form-group" style="display: none">
+                                <p class="bg-primary">&nbsp&nbsp&nbsp审批流程：<b id="workflow_auditors_display"></b></p>
+                            </div>
+                            <!--button-->
+                            <div class="form-group">
+                                <input id="btn-format" type="button" class="btn btn-info" value="美化"/>
+                                <input id="btn-explain" type="button" class="btn btn-warning" value="执行计划"/>
+                                <input id="btn-submitsql" type="button" class="btn btn-success" value="SQL提交"/>
+                            </div>
+
+                        </div>
+<!--                        <div class="text-info">-->
+<!--                            <li>支持注释行，可选择指定语句执行，默认执行第一条;</li>-->
+<!--                            <li>查询结果行数限制见权限管理，会选择查询涉及表的最小limit值</li>-->
+<!--                        </div>-->
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-12 column">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    执行结果
+                </div>
+                <div class="panel-body">
+                    <div class="table-responsive">
+                        <table id="query_result" data-toggle="table" class="table table-striped table-hover"
+                               style="table-layout:inherit;overflow:hidden;white-space:nowrap;word-break:break-word;text-overflow:ellipsis"></table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+ {% endblock content %}
+
+{% block js %}
+    {% load static %}
+    <link href="{% static 'daterangepicker/css/daterangepicker.css' %}" rel="stylesheet" type="text/css"/>
+    <script src="{% static 'ace/ace.js' %}"></script>
+    <script src="{% static 'ace/ext-language_tools.js' %}"></script>
+    <script src="{% static 'ace/mode-mysql.js' %}"></script>
+    <script src="{% static 'ace/theme-github.js' %}"></script>
+    <script src="{% static 'ace/snippets/mysql.js' %}"></script>
+    <script src="{% static 'ace/ace-init.js' %}"></script>
+    <link rel="stylesheet" href="/static/toastr/toastr.min.css" type="text/css">
+    <script type="text/javascript" src="/static/toastr/toastr.min.js"></script>
+    <script src="{% static 'daterangepicker/js/moment.min.js' %}"></script>
+    <script src="{% static 'daterangepicker/js/daterangepicker.js' %}"></script>
+    <!---->
+    <script>
+        //初始化时间控件
+        $("#input_first_run_time").daterangepicker({
+            singleDatePicker: true,
+            timePicker: true,
+            timePicker24Hour: true,
+            autoApply: true,
+            autoUpdateInput: false,
+            opens: "right",
+            drops: "up",
+            minDate: moment().startOf('minutes'),
+            startDate: moment().startOf('hour'),
+            locale: {
+                "applyLabel": "确定",
+                "cancelLabel": "清空",
+                "daysOfWeek": ["日", "一", "二", "三", "四", "五", "六"],
+                "monthNames": ["一月", "二月", "三月", "四月", "五月", "六", "七月", "八月", "九月", "十月", "十一月", "十二月"],
+                "firstDay": 1
+            },
+        }).on('apply.daterangepicker', function (ev, picker) {
+            $(this).css("color", "#333");
+            $("#first_run_time").val(picker.startDate.format('YYYY-MM-DD HH:mm'));
+            $(this).val(picker.startDate.format('MM-DD HH:mm'));
+        }).on('cancel.daterangepicker', function (ev, picker) {
+            $(this).css("color", "#999");
+            $("#first_run_time").val();
+            $(this).val('请选择首次执行时间');
+        });
+
+        //改变重复周期
+        function period_select(option, value=0) {
+            var prompts = {
+                O : "仅执行一次",
+                H : "每小时执行一次",
+                D : "每天执行一次",
+                W : "每星期执行一次",
+                M : "每月执行一次",
+                Y : "每年执行一次",
+                I : "每" + value + "分钟执行一次"
+            };
+
+            $("#period").val(option);
+            $("#minutes").val(value);
+
+            $("#input_period").val(prompts[option]);
+            $("#input_period").css("color", "#333");
+
+            console.log($("#period").val(), $("#minutes").val())
+        }
+    </script>
+
+    <!-- 执行结果  -->
+    <script>
+        //表单验证
+        function sqlquery_validate(element) {
+            var result = true;
+            element.find('[required]').each(
+                function () {
+                    var fieldElement = $(this);
+                    //如果为null则设置为''
+                    var value = fieldElement.val() || '';
+                    if (value) {
+                        console.log(value);
+                        value = value.trim();
+                    }
+                    if (!value || value === fieldElement.attr('data-placeholder')) {
+                        alert(fieldElement.attr('data-placeholder'));
+                        result = false;
+                        return result;
+                    }
+                }
+            );
+            return result;
+        }
+
+        //先做表单验证，验证成功再成功提交执行计划查看
+        $("#btn-explain").click(function () {
+                var formSubmit = $("#form-sqlquery");
+                var sqlContent = editor.getValue();
+                $("#sql_content").val(sqlContent);
+                if (sqlquery_validate(formSubmit)) {
+                    $('input[type=button]').addClass('disabled');
+                    $('input[type=button]').prop('disabled', true);
+                    sqlquery('explain')
+                }
+            }
+        );
+
+        //先做表单验证，验证成功再成功提交格式化sql
+        $("#btn-format").click(function () {
+                var select_sqlContent = editor.session.getTextRange(editor.getSelectionRange());
+                if (select_sqlContent) {
+                    var sqlContent = select_sqlContent
+                } else {
+                    var sqlContent = editor.getValue();
+
+                }
+                var sqlContent = window.sqlFormatter.format(sqlContent);
+                editor.setValue(sqlContent);
+                editor.clearSelection();
+            }
+        );
+
+        //SQL提交
+        $("#btn-submitsql").click(function () {
+            //获取form对象，判断输入，通过则提交
+            var sqlContent = editor.getValue();
+            $("#sql_content").val(sqlContent);
+            var formSubmit = $("#form-sqlquery");
+            if (sqlquery_validate(formSubmit)) {
+                //提交请求
+                $.ajax({
+                    type: "post",
+                    async: false,
+                    url: "/sqlcron/query/new/",
+                    dataType: "json",
+                    data:formSubmit.serialize(),
+                    complete: function () {
+                        $('input[type=button]').removeClass('disabled');
+                        $('input[type=button]').prop('disabled', false);
+                    },
+                    success: function (data) {
+                        if(data.status === 0){
+                            alert(data.data['redirect']);
+                            window.location.href = data.data['redirect'];
+                        }else{
+                            alert(data.msg);
+                        }
+                    },
+                    error: function (XMLHttpRequest, textStatus, errorThrown) {
+                        alert(errorThrown);
+                    }
+                });
+            }
+        });
+        // 展示数据
+        function display_data(data) {
+            var result = data.data;
+            if (data.status === 0) {
+                //显示查询结果
+                if (result['column_list']) {
+                    //异步获取要动态生成的列
+                    var columns = [];
+                    $.each(result['column_list'], function (i, column) {
+                        columns.push({
+                            "field": i,
+                            "title": column,
+                            "sortable": true,
+                            cellStyle: function (value, row, index) {
+                                if (!value && typeof (value) !== "undefined" && value !== 0) {
+                                    return {
+                                        css: {
+                                            color: 'darkgrey'
+                                        }
+                                    }
+                                } else {
+                                    return {
+                                        css: {}
+                                    }
+                                }
+                            },
+
+                        });
+                    });
+                    $("#query_result").bootstrapTable('destroy').bootstrapTable({
+                        escape: true,
+                        data: result['rows'],
+                        columns: columns,
+                        undefinedText: '(null)',
+                        showColumns: true,
+                        showToggle: true,
+                        clickToSelect: true,
+                        striped: true,
+                        pagination: true,
+                        pageSize: 30,
+                        pageList: [30, 50, 100, 500, 1000],
+                        locale: 'zh-CN',
+                        detailView: true,                   //是否显示父子表
+                        detailViewByClick: true,
+                        //格式化详情
+                        detailFormatter: function (index, row) {
+                            var html = [];
+                            $.each(row, function (key, value) {
+                                html.push('<pre>' + value + '</pre>');
+                            });
+                            return html.join('');
+                        },
+                    });
+                }
+            } else {
+                //查询报错失败信息
+                $("#query_result").bootstrapTable('destroy').bootstrapTable({
+                    escape: false,
+                    columns: [{
+                        field: 'error',
+                        title: 'Error'
+                    }],
+                    data: [{
+                        error: data.msg
+                    }]
+                })
+            }
+        }
+
+        //将数据通过ajax提交给后端进行检查
+        function sqlquery(sql) {
+            var select_sqlContent = editor.session.getTextRange(editor.getSelectionRange());
+            if (select_sqlContent) {
+                sqlContent = select_sqlContent
+            } else {
+                var sqlContent = editor.getValue();
+
+            }
+            //查看执行计划
+            if (sql === 'explain') {
+                sqlContent = 'explain ' + sqlContent
+            }
+            //查看表结构
+            else if (sql === 'show create table') {
+                sqlContent = "show create table " + $("#table_name").val() + ";"
+            }
+            //提交请求
+            $.ajax({
+                type: "post",
+                url: "/query/",
+                dataType: "json",
+                data: {
+                    instance_name: $("#instance_name").val(),
+                    db_name: $("#db_name").val(),
+                    schema_name: $("#schema_name").val(),
+                    tb_name: $("#table_name").val(),
+                    sql_content: sqlContent,
+                    limit_num: $("#limit_num").val()
+                },
+                complete: function () {
+                    $('input[type=button]').removeClass('disabled');
+                    $('input[type=button]').prop('disabled', false);
+                },
+                success: function (data) {
+                    display_data(data)
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    alert(errorThrown);
+                }
+            });
+        }
+    </script>
+    <!--group -->
+    <script>
+        // 获取实例信息和审批流程
+        $("#group_name").change(function () {
+            $.ajax({
+                type: "post",
+                url: "/group/instances/",
+                dataType: "json",
+                data: {
+                    group_name: $("#group_name").val(),
+                    tag_code: 'can_read'
+                },
+                complete: function () {
+                    var pathname = window.location.pathname;
+                    if (pathname === "/editsql/") {
+                        //填充实例信息
+                        $('#instance_name').selectpicker('val', sessionStorage.getItem('editClustername'));
+                        if ($("#instance_name").val()) {
+                            $("#instance_name").selectpicker().trigger("change");
+                        }
+                    }
+                },
+                success: function (data) {
+                    if (data.status === 0) {
+                        var result = data['data'];
+                        $("#optgroup-mysql").empty();
+                        $("#optgroup-oracle").empty();
+                        $("#optgroup-mssql").empty();
+                        $("#optgroup-redis").empty();
+                        $("#optgroup-pgsql").empty();
+                        $("#optgroup-phoenix").empty();
+                        for (var i = 0; i < result.length; i++) {
+                            var instance = "<option value=\"" + result[i]['instance_name'] + "\">" + result[i]['instance_name'] + "</option>";
+                            if (result[i]['db_type'] === 'mysql') {
+                                $("#optgroup-mysql").append(instance);
+                            } else if (result[i]['db_type'] === 'mssql') {
+                                $("#optgroup-mssql").append(instance);
+                            } else if (result[i]['db_type'] === 'redis') {
+                                $("#optgroup-redis").append(instance);
+                            } else if (result[i]['db_type'] === 'pgsql') {
+                                $("#optgroup-pgsql").append(instance);
+                            } else if (result[i]['db_type'] === 'oracle') {
+                                $("#optgroup-oracle").append(instance);
+                            } else if (result[i]['db_type'] === 'mongo') {
+                                $("#optgroup-mongo").append(instance);
+                            }  else if (result[i]['db_type'] === 'phoenix') {
+                                $("#optgroup-phoenix").append(instance);
+                            }
+                        }
+                        $('#instance_name').selectpicker('render');
+                        $('#instance_name').selectpicker('refresh');
+                        $("#db_name").empty();
+                        $('#db_name').selectpicker('render');
+                        $('#db_name').selectpicker('refresh');
+                    } else {
+                        alert(data.msg);
+                    }
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    alert(errorThrown);
+                }
+            });
+            $.ajax({
+                type: "post",
+                url: "/group/auditors/",
+                dataType: "json",
+                data: {
+                    group_name: $("#group_name").val(),
+                    workflow_type: 2
+                },
+                complete: function () {
+                },
+                success: function (data) {
+                    if (data.status === 0) {
+                        var result = data.data;
+                        $("#workflow_auditors").val(result['auditors']);
+                        $("#workflow_auditors_display").text(result['auditors_display']);
+                        $("#div-workflow_auditors").show();
+                    } else {
+                        alert(data.msg);
+                    }
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    alert(errorThrown);
+                }
+            });
+        });
+    </script>
+
+    <!-- common -->
+    <script>
+        // 实例变更获取数据库
+        function get_instance(async) {
+            $("#db_name").empty();
+            $('#db_name').selectpicker('render');
+            $('#db_name').selectpicker('refresh');
+
+            // 控制按钮和选择器显示
+            var optgroup = $('#instance_name :selected').parent().attr('label');
+            if (optgroup === "Redis") {
+                $("#div-table_name").hide();
+                $("#div-schema_name").remove();
+                $("#btn-format").attr('disabled', true);
+                $("#btn-explain").attr('disabled', true);
+            } else if (optgroup === "MySQL") {
+                $("#div-table_name").show();
+                $("#div-schema_name").remove();
+                $("#btn-format").attr('disabled', false);
+                $("#btn-explain").attr('disabled', false);
+            } else if (optgroup === "Phoenix") {
+                $("#div-table_name").show();
+                $("#div-schema_name").remove();
+                $("#btn-format").attr('disabled', false);
+                $("#btn-explain").remove();
+            } else {
+                $("#div-table_name").show();
+                $("#div-schema_name").remove();
+                $("#btn-format").attr('disabled', false);
+                $("#btn-explain").attr('disabled', true);
+            }
+            // PgSQL需要选择模式再获取表
+            if (optgroup === "PgSQL") {
+                $("#div-schema_name").show()
+            } else {
+                $("#div-schema_name").hide()
+            }
+
+            sessionStorage.setItem('sql_query_instance_name', $("#instance_name").val());
+            //将数据通过ajax提交给获取db_name
+            $.ajax({
+                type: "get",
+                url: "/instance/instance_resource/",
+                dataType: "json",
+                async: async,
+                data: {
+                    instance_name: $("#instance_name").val(),
+                    resource_type: "database"
+                },
+                complete: function () {
+                    $("#db_name").selectpicker('val', db_name);
+                    if ($("#db_name").val()) {
+                        $("#db_name").selectpicker().trigger("change");
+                    }
+                },
+                success: function (data) {
+                    if (data.status === 0) {
+                        var result = data.data;
+                        var dbs = [];
+                        for (var i = 0; i < result.length; i++) {
+                            var name = "<option value=\"" + result[i] + "\">" + result[i] + "</option>";
+                            $("#db_name").append(name);
+                            dbs.push({
+                                name: result[i],
+                                value: result[i],
+                                caption: result[i],
+                                meta: 'databases',
+                                score: '100'
+                            })
+                        }
+                        $('#db_name').selectpicker('render');
+                        $('#db_name').selectpicker('refresh');
+                        //自动补全提示
+                        setCompleteData(dbs)
+                    } else {
+                        alert(data.msg);
+                    }
+                },
+
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    alert(errorThrown);
+                }
+            });
+        }
+
+        $("#instance_name").change(function () {
+            if (sessionStorage.getItem('re_query')) {
+                get_instance(false)
+            } else {
+                get_instance(true)
+            }
+        });
+
+
+        //数据库变更获取表/模式名称
+        $("#db_name").change(function () {
+            $("#table_name").empty();
+            $('#table_name').selectpicker('render');
+            $('#table_name').selectpicker('refresh');
+            $("#schema_name").empty();
+            $('#schema_name').selectpicker('render');
+            $('#schema_name').selectpicker('refresh');
+            // PgSQL需要选择模式再获取表
+            var optgroup = $('#instance_name :selected').parent().attr('label');
+            var resource_type = "table";
+            if (optgroup === "PgSQL") {
+                //获取schema
+                resource_type = "schema"
+            }
+            $.ajax({
+                type: "get",
+                url: "/instance/instance_resource/",
+                dataType: "json",
+                data: {
+                    instance_name: $("#instance_name").val(),
+                    db_name: $("#db_name").val(),
+                    resource_type: resource_type
+                },
+                complete: function () {
+                },
+                success: function (data) {
+                    if (data.status === 0) {
+                        var result = data.data;
+                        if (resource_type === "table") {
+                            for (var i = 0; i < result.length; i++) {
+                                var name = "<option>" + result[i] + "</option>";
+                                $("#table_name").append(name);
+                            }
+                            $('#table_name').selectpicker('render');
+                            $('#table_name').selectpicker('refresh');
+                            //自动补全提示
+                            $("#schema_name").val('');
+                            setTablesCompleteData(result)
+                        } else {
+                            for (var i = 0; i < result.length; i++) {
+                                var name = "<option>" + result[i] + "</option>";
+                                $("#schema_name").append(name);
+                            }
+                            $('#schema_name').selectpicker('render');
+                            $('#schema_name').selectpicker('refresh');
+                            //自动补全提示
+                            setSchemasCompleteData(result)
+                        }
+
+                    } else {
+                        alert(data.msg);
+                    }
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    alert(errorThrown);
+                }
+            });
+        });
+
+        //模式变更获取表
+        $("#schema_name").change(function () {
+            $("#table_name").empty();
+            $('#table_name').selectpicker('render');
+            $('#table_name').selectpicker('refresh');
+            //获取table
+            $.ajax({
+                type: "get",
+                url: "/instance/instance_resource/",
+                dataType: "json",
+                data: {
+                    instance_name: $("#instance_name").val(),
+                    db_name: $("#db_name").val(),
+                    schema_name: $("#schema_name").val(),
+                    resource_type: "table"
+                },
+                complete: function () {
+                    $("#schema_name").attr('disabled', false);
+                },
+                success: function (data) {
+                    if (data.status === 0) {
+                        var result = data.data;
+                        for (var i = 0; i < result.length; i++) {
+                            var name = "<option>" + result[i] + "</option>";
+                            $("#table_name").append(name);
+                        }
+                        $('#table_name').selectpicker('render');
+                        $('#table_name').selectpicker('refresh');
+                        //自动补全提示
+                        setTablesCompleteData(result)
+                    } else {
+                        alert(data.msg);
+                    }
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    alert(errorThrown);
+                }
+            });
+        });
+
+        //获取表结构
+        $("#table_name").change(function () {
+            $.ajax({
+                type: "post",
+                url: "/instance/describetable/",
+                dataType: "json",
+                data: {
+                    instance_name: $("#instance_name").val(),
+                    db_name: $("#db_name").val(),
+                    schema_name: $("#schema_name").val(),
+                    tb_name: $("#table_name").val()
+                },
+                success: function (data) {
+                    data.is_describe = true;
+                    display_data(data);
+                },
+            });
+            //自动补全提示
+            setColumnsCompleteData()
+        });
+
+        //初始化
+        $(document).ready(function () {
+            // 清空id, 只允许新增不允许修改
+            sessionStorage.removeItem('editWorkflowDetailId');
+            var pathname = window.location.pathname;
+            if (pathname == "/editsql/") {
+                $("#workflow_name").val(sessionStorage.getItem('editWorkflowNname'));
+                $("#demand_url").val(sessionStorage.getItem('editDemandUrl'));
+                $("#group_name").val(sessionStorage.getItem('editGroup'));
+                $("#demand_url").val(sessionStorage.getItem('editDemandUrl'));
+                editor.setValue(sessionStorage.getItem('editSqlContent'));
+                editor.clearSelection();
+                $("#is_backup").val(sessionStorage.getItem('editIsbackup'));
+            } else if (pathname === "/submitotherinstance/") {
+                $("#workflow_name").val(sessionStorage.getItem('editWorkflowNname'));
+                $("#demand_url").val(sessionStorage.getItem('editDemandUrl'));
+                $("#group_name").val(sessionStorage.getItem('editGroup'));
+                editor.setValue(sessionStorage.getItem('editSqlContent'));
+                editor.clearSelection();
+                $("#is_backup").val(sessionStorage.getItem('editIsbackup'));
+            } else if (pathname === "/sqlcron/newquery/") {
+                //重置页面内容
+                editor.setValue("");
+                $(".selectpicker").selectpicker('val', '');
+                $(".selectpicker").selectpicker('render');
+                $(".selectpicker").selectpicker('refresh');
+            }
+            if ($("#group_name").val()) {
+                $("#group_name").trigger("change");
+            }
+        });
+
+        function show(o) {
+            if (o.value == "key") {
+                document.getElementById("keyHelp").style.display = "block";
+                document.getElementById("stringHelp").style.display = "none";
+                document.getElementById("hashHelp").style.display = "none";
+                document.getElementById("setHelp").style.display = "none";
+            } else if (o.value == "string") {
+                document.getElementById("keyHelp").style.display = "none";
+                document.getElementById("stringHelp").style.display = "block";
+                document.getElementById("hashHelp").style.display = "none";
+                document.getElementById("setHelp").style.display = "none";
+            } else if (o.value == "hash") {
+                document.getElementById("keyHelp").style.display = "none";
+                document.getElementById("stringHelp").style.display = "none";
+                document.getElementById("hashHelp").style.display = "block";
+                document.getElementById("setHelp").style.display = "none";
+            } else if (o.value == "set") {
+                document.getElementById("keyHelp").style.display = "none";
+                document.getElementById("stringHelp").style.display = "none";
+                document.getElementById("hashHelp").style.display = "none";
+                document.getElementById("setHelp").style.display = "block";
+            }
+        }
+    </script>
+{% endblock %}

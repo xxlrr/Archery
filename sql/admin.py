@@ -106,9 +106,9 @@ class SqlWorkflowContentInline(admin.TabularInline):
 @admin.register(SqlWorkflow)
 class SqlWorkflowAdmin(admin.ModelAdmin):
     list_display = (
-        'id', 'workflow_name', 'group_name', 'instance', 'engineer_display', 'create_time', 'status', 'is_backup')
-    search_fields = ['id', 'workflow_name', 'engineer_display', 'sqlworkflowcontent__sql_content']
-    list_filter = ('group_name', 'instance__instance_name', 'status', 'syntax_type',)
+        'id', 'workflow_name', 'group_name', 'order_type', 'instance', 'engineer_display', 'create_time', 'status', 'is_backup')
+    search_fields = ['id', 'workflow_name', 'engineer_display', 'sqlworkflowcontent__sql_content', 'order_type']
+    list_filter = ('group_name', 'instance__instance_name', 'status', 'order_type', 'syntax_type',)
     list_display_links = ('id', 'workflow_name',)
     inlines = [SqlWorkflowContentInline]
 
@@ -169,8 +169,9 @@ class WorkflowAuditAdmin(admin.ModelAdmin):
 @admin.register(WorkflowLog)
 class WorkflowLogAdmin(admin.ModelAdmin):
     list_display = (
-        'operation_type_desc', 'operation_info', 'operator_display', 'operation_time',)
-    list_filter = ('operation_type_desc', 'operator_display')
+        'audit_id', 'operation_type_desc', 'operation_info', 'operator_display', 'operation_time',)
+    search_fields = ('audit_id', 'operator_display', 'operation_time')
+    list_filter = ('operation_type_desc', 'operator_display', 'operation_time')
 
 
 # 实例数据库列表

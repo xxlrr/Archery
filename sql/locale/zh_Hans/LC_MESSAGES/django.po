@@ -49,3 +49,19 @@ msgstr "自动审核不通过"
 #: .\sql\models.py:118
 msgid "workflow_exception"
 msgstr "执行有异常"
+
+#: .\sql\models.py:182
+msgid "workflow_pause"
+msgstr "任务暂停"
+
+#: .\sql\models.py:183
+msgid "workflow_stop"
+msgstr "任务已终止"
+
+#: .\sql\models.py:188
+msgid "common_order"
+msgstr "普通工单"
+
+#: .\sql\models.py:189
+msgid "sqlcron_order"
+msgstr "任务工单"

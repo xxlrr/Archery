@@ -412,6 +412,9 @@ def workflowsdetail(request, audit_id):
     if audit_detail.workflow_type == WorkflowDict.workflow_type['query']:
         return HttpResponseRedirect(reverse('sql:queryapplydetail', args=(audit_detail.workflow_id,)))
     elif audit_detail.workflow_type == WorkflowDict.workflow_type['sqlreview']:
+        workflow = SqlWorkflow.objects.get(id=audit_detail.workflow_id)
+        if workflow.order_type == 'sqlcron_order':
+            return HttpResponseRedirect(reverse('sql:sqlcrondetail', args=(audit_detail.workflow_id,)))
         return HttpResponseRedirect(reverse('sql:detail', args=(audit_detail.workflow_id,)))
 
 
@@ -423,3 +426,167 @@ def dbaprinciples(request):
     with open(file, 'r') as f:
         md = f.read().replace('\n', '\\n')
     return render(request, 'dbaprinciples.html', {'md': md})
+
+
+@permission_required('sql.menu_sqlcron_manage', raise_exception=True)
+def sqlcronmanage(request):
+    """SQL上线工单列表页面"""
+    user = request.user
+    # 过滤筛选项的数据
+    filter_dict = dict()
+    # 管理员，可查看所有工单
+    if user.is_superuser:
+        pass
+    # 非管理员，拥有审核权限、资源组粒度执行权限的，可以查看组内所有工单
+    elif user.has_perm('sql.sql_review') or user.has_perm('sql.sql_execute_for_resource_group'):
+        # 先获取用户所在资源组列表
+        group_list = user_groups(user)
+        group_ids = [group.group_id for group in group_list]
+        filter_dict['group_id__in'] = group_ids
+    # 其他人只能查看自己提交的工单
+    else:
+        filter_dict['engineer'] = user.username
+    instance_id = SqlWorkflow.objects.filter(**filter_dict).values('instance_id').distinct()
+    instance = Instance.objects.filter(pk__in=instance_id)
+    resource_group_id = SqlWorkflow.objects.filter(**filter_dict).values('group_id').distinct()
+    resource_group = ResourceGroup.objects.filter(group_id__in=resource_group_id)
+
+    return render(request, "sqlcron/manage.html",
+                  {'status_list': SQL_WORKFLOW_CHOICES,
+                   'instance': instance, 'resource_group': resource_group})
+    
+
+@permission_required('sql.menu_sqlcron_newexec', raise_exception=True)
+def sqlcronnewexec(request):
+    """提交SQL的页面"""
+    user = request.user
+    # 获取组信息
+    group_list = user_groups(user)
+
+    # 获取所有有效用户，通知对象
+    active_user = Users.objects.filter(is_active=1)
+
+    # 获取系统配置
+    archer_config = SysConfig()
+
+    # 主动创建标签
+    InstanceTag.objects.get_or_create(tag_code='can_write', defaults={'tag_name': '支持上线', 'active': True})
+
+    context = {'active_user': active_user, 'group_list': group_list,
+               'enable_backup_switch': archer_config.get('enable_backup_switch')}
+    return render(request, "sqlcron/newexec.html", context)
+
+
+@permission_required('sql.menu_sqlcron_newquery', raise_exception=True)
+def sqlcronnewquery(request):
+    """SQL在线查询页面"""
+    user = request.user
+    # 获取组信息
+    group_list = user_groups(user)
+
+    # 获取所有有效用户，通知对象
+    active_user = Users.objects.filter(is_active=1)
+
+    # 获取系统配置
+    archer_config = SysConfig()
+
+    # 主动创建标签
+    InstanceTag.objects.get_or_create(tag_code='can_read', defaults={'tag_name': '支持查询', 'active': True})
+
+    context = {'active_user': active_user, 'group_list': group_list}
+    # 主动创建标签
+    return render(request, 'sqlcron/newquery.html', context)
+
+
+def sqlcrondetail(request, workflow_id):
+    """展示SQL工单详细页面"""
+    workflow_detail = get_object_or_404(SqlWorkflow, pk=workflow_id)
+    if not can_view(request.user, workflow_id):
+        raise PermissionDenied
+    if workflow_detail.status in ['workflow_finish', 'workflow_exception']:
+        rows = workflow_detail.sqlworkflowcontent.execute_result
+    else:
+        rows = workflow_detail.sqlworkflowcontent.review_content
+    # 自动审批不通过的不需要获取下列信息
+    if workflow_detail.status != 'workflow_autoreviewwrong':
+        # 获取当前审批和审批流程
+        audit_auth_group, current_audit_auth_group = Audit.review_info(workflow_id, 2)
+
+        # 是否可审核
+        is_can_review = Audit.can_review(request.user, workflow_id, 2)
+        # 是否可执行
+        is_can_execute = False
+        # 是否可定时执行
+        is_can_timingtask = False
+        # 是否可取消
+        is_can_cancel = can_cancel(request.user, workflow_id)
+        # 是否可查看回滚信息
+        is_can_rollback = False
+
+        # 获取审核日志
+        try:
+            audit_id = Audit.detail_by_workflow_id(workflow_id=workflow_id,
+                                                   workflow_type=WorkflowDict.workflow_type['sqlreview']).audit_id
+            last_operation_info = Audit.logs(audit_id=audit_id).latest('id').operation_info
+        except Exception as e:
+            logger.debug(f'无审核日志记录，错误信息{e}')
+            last_operation_info = ''
+    else:
+        audit_auth_group = '系统自动驳回'
+        current_audit_auth_group = '系统自动驳回'
+        is_can_review = False
+        is_can_execute = False
+        is_can_timingtask = False
+        is_can_cancel = False
+        is_can_rollback = False
+        last_operation_info = None
+
+    # 获取是否开启手工执行确认
+    manual = SysConfig().get('manual')
+
+    review_result = ReviewSet()
+    if rows:
+        try:
+            # 检验rows能不能正常解析
+            loaded_rows = json.loads(rows)
+            #  兼容旧数据'[[]]'格式，转换为新格式[{}]
+            if isinstance(loaded_rows[-1], list):
+                for r in loaded_rows:
+                    review_result.rows += [ReviewResult(inception_result=r)]
+                rows = review_result.json()
+        except IndexError:
+            review_result.rows += [ReviewResult(
+                id=1,
+                sql=workflow_detail.sqlworkflowcontent.sql_content,
+                errormessage="Json decode failed."
+                             "执行结果Json解析失败, 请联系管理员"
+            )]
+            rows = review_result.json()
+        except json.decoder.JSONDecodeError:
+            review_result.rows += [ReviewResult(
+                id=1,
+                sql=workflow_detail.sqlworkflowcontent.sql_content,
+                # 迫于无法单元测试这里加上英文报错信息
+                errormessage="Json decode failed."
+                             "执行结果Json解析失败, 请联系管理员"
+            )]
+            rows = review_result.json()
+    else:
+        rows = workflow_detail.sqlworkflowcontent.review_content
+
+    schedule = workflow_detail.schedule
+    context = {'workflow_detail': workflow_detail, 'rows': rows, 'last_operation_info': last_operation_info,
+               'is_can_review': is_can_review, 'is_can_execute': is_can_execute, 'is_can_timingtask': is_can_timingtask,
+               'is_can_cancel': is_can_cancel, 'is_can_rollback': is_can_rollback, 'audit_auth_group': audit_auth_group,
+               'current_audit_auth_group': current_audit_auth_group, 'next_run': schedule.next_run,
+               'receivers': workflow_detail.receivers.all(),
+               'schedule_period': {
+                        'O': '单次执行',
+                        'H': '每小时执行一次',
+                        'D': '每天执行一次',
+                        'W': '每周执行一次',
+                        'M': '每月执行一次',
+                        'Y': '每年执行一次',
+                        'I':  f'每{schedule.minutes}分钟执行一次'}[schedule.schedule_type]
+    }
+    return render(request, 'sqlcron/detail.html', context)

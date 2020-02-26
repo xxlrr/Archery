@@ -105,11 +105,10 @@ class MsgSender(object):
             main_msg['Cc'] = ', '.join(str(cc) for cc in list(set(list_cc)))
             main_msg['Date'] = email.utils.formatdate()
 
-            print(self.MAIL_REVIEW_SMTP_SERVER,self.MAIL_REVIEW_SMTP_PORT,self.MAIL_REVIEW_FROM_USER,self.MAIL_REVIEW_FROM_PASSWORD,self.MAIL_REVIEW_FROM_ADDR)
             if self.MAIL_SSL:
-                server = smtplib.SMTP_SSL(self.MAIL_REVIEW_SMTP_SERVER, self.MAIL_REVIEW_SMTP_PORT, timeout=3)
+                server = smtplib.SMTP_SSL(self.MAIL_REVIEW_SMTP_SERVER, self.MAIL_REVIEW_SMTP_PORT, timeout=10)
             else:
-                server = smtplib.SMTP(self.MAIL_REVIEW_SMTP_SERVER, self.MAIL_REVIEW_SMTP_PORT, timeout=3)
+                server = smtplib.SMTP(self.MAIL_REVIEW_SMTP_SERVER, self.MAIL_REVIEW_SMTP_PORT, timeout=10)
 
                 # 如果提供的密码为空，则不需要登录
             if self.MAIL_REVIEW_FROM_PASSWORD:

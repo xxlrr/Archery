@@ -68,7 +68,7 @@ def execute_callback(task):
                                            workflow_type=WorkflowDict.workflow_type['sqlreview']).audit_id
     Audit.add_log(audit_id=audit_id,
                   operation_type=6,
-                  operation_type_desc='执行结束',
+                  operation_type_desc='执行工单',
                   operation_info='执行结果：{}'.format(workflow.get_status_display()),
                   operator='',
                   operator_display='系统'

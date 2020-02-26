@@ -39,13 +39,19 @@ function sqlworkflowStatus_formatter(value) {
         return "<span class=\"label label-primary\">" + gettext(value) + "</span>"
     }
     else if (value === "workflow_autoreviewwrong") {
-        return "<span class=\"label label-danger\">" + gettext(value) + "</span>"
+        return "<span class=\"label label-default\">" + gettext(value) + "</span>"
     }
     else if (value === "workflow_exception") {
         return "<span class=\"label label-danger\">" + gettext(value) + "</span>"
     }
     else if (value === "workflow_finish_manual") {
         return "<span class=\"label label-success\">" + gettext(value) + "</span>"
+    }
+    else if (value === "workflow_pause") {
+        return "<span class=\"label label-danger\">" + gettext(value) + "</span>"
+    }
+    else if (value === "workflow_stop") {
+        return "<span class=\"label label-default\">" + gettext(value) + "</span>"
     }
     else {
         return "<span class=\"label label-danger\">" + "未知状态" + "</span>"

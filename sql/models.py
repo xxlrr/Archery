@@ -1,6 +1,7 @@
 # -*- coding: UTF-8 -*-
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django_q.models import Schedule
 from mirage import fields
 
 from django.utils.translation import gettext as _
@@ -168,7 +169,8 @@ class InstanceTagRelations(models.Model):
         verbose_name = u'实例标签关系'
         verbose_name_plural = u'实例标签关系'
 
-
+########################################
+# todo: to combine
 SQL_WORKFLOW_CHOICES = (
     ('workflow_finish', _('workflow_finish')),
     ('workflow_abort', _('workflow_abort')),
@@ -177,7 +179,19 @@ SQL_WORKFLOW_CHOICES = (
     ('workflow_timingtask', _('workflow_timingtask')),
     ('workflow_executing', _('workflow_executing')),
     ('workflow_autoreviewwrong', _('workflow_autoreviewwrong')),
-    ('workflow_exception', _('workflow_exception')))
+    ('workflow_exception', _('workflow_exception')),
+    ('workflow_pause', _('workflow_pause')),
+    ('workflow_stop', _('workflow_stop')),
+)
+
+ORDER_TYPE = (
+    ('common_order', _('common_order')),
+    ('sqlcron_order', _('sqlcron_order')),
+)
+
+workflow_type_choices = ((1, _('sql_query')), (2, _('sql_review')))
+workflow_status_choices = ((0, '待审核'), (1, '审核通过'), (2, '审核不通过'), (3, '审核取消'))
+##########################################
 
 
 class SqlWorkflow(models.Model):
@@ -185,12 +199,12 @@ class SqlWorkflow(models.Model):
     存放各个SQL上线工单的基础内容
     """
     workflow_name = models.CharField('工单内容', max_length=50)
-    demand_url = models.CharField('需求链接', max_length=500)
+    demand_url = models.CharField('需求链接', max_length=500, blank=True, null=True, default='')
     group_id = models.IntegerField('组ID')
     group_name = models.CharField('组名称', max_length=100)
     instance = models.ForeignKey(Instance, on_delete=models.CASCADE)
     db_name = models.CharField('数据库', max_length=64)
-    syntax_type = models.IntegerField('工单类型 0、未知，1、DDL，2、DML', choices=((0, '其他'), (1, 'DDL'), (2, 'DML')), default=0)
+    syntax_type = models.IntegerField('工单类型 0、未知，1、DDL，2、DML 3、QUERY', choices=((0, '其他'), (1, 'DDL'), (2, 'DML'), (3, 'QUERY')), default=0)
     is_backup = models.BooleanField('是否备份', choices=((False, '否'), (True, '是'),), default=True)
     engineer = models.CharField('发起人', max_length=30)
     engineer_display = models.CharField('发起人中文名', max_length=50, default='')
@@ -199,8 +213,12 @@ class SqlWorkflow(models.Model):
     run_date_start = models.DateTimeField('可执行起始时间', null=True, blank=True)
     run_date_end = models.DateTimeField('可执行结束时间', null=True, blank=True)
     create_time = models.DateTimeField('创建时间', auto_now_add=True)
-    finish_time = models.DateTimeField('结束时间', null=True, blank=True)
+    finish_time = models.DateTimeField('工单结束时间', null=True, blank=True)
     is_manual = models.IntegerField('是否原生执行', choices=((0, '否'), (1, '是')), default=0)
+    receivers = models.ManyToManyField(Users, blank=True)
+    cc_list = models.EmailField('其他接收人邮箱', blank=True, default="", )
+    order_type = models.CharField('工单类型', max_length=16, choices=ORDER_TYPE, default='common_order')
+    schedule = models.OneToOneField(Schedule, on_delete=models.CASCADE, blank=True, null=True)
 
     def __str__(self):
         return self.workflow_name
@@ -230,10 +248,6 @@ class SqlWorkflowContent(models.Model):
         db_table = 'sql_workflow_content'
         verbose_name = u'SQL工单内容'
         verbose_name_plural = u'SQL工单内容'
-
-
-workflow_type_choices = ((1, _('sql_query')), (2, _('sql_review')))
-workflow_status_choices = ((0, '待审核'), (1, '审核通过'), (2, '审核不通过'), (3, '审核取消'))
 
 
 class WorkflowAudit(models.Model):
@@ -320,7 +334,7 @@ class WorkflowLog(models.Model):
     audit_id = models.IntegerField('工单审批id', db_index=True)
     operation_type = models.SmallIntegerField('操作类型，0提交/待审核、1审核通过、2审核不通过、3审核取消、4定时、5执行、6执行结束')
     operation_type_desc = models.CharField('操作类型描述', max_length=10)
-    operation_info = models.CharField('操作信息', max_length=200)
+    operation_info = models.CharField('操作信息', max_length=200)   # todo: to be json
     operator = models.CharField('操作人', max_length=30)
     operator_display = models.CharField('操作人中文名', max_length=50, default='')
     operation_time = models.DateTimeField(auto_now_add=True)
@@ -630,7 +644,18 @@ class Permission(models.Model):
             ('instance_account_manage', '管理实例账号'),
             ('param_view', '查看实例参数列表'),
             ('param_edit', '修改实例参数'),
-            ('data_dictionary_export', '导出数据字典')
+            ('data_dictionary_export', '导出数据字典'),
+
+            # for sqlcron
+            ('menu_sqlcron', '菜单 SQL任务'),
+            ('menu_sqlcron_manage', '菜单 SQL任务 管理'),
+            ('menu_sqlcron_newexec', '菜单 SQL任务 新增更改类任务'),
+            ('menu_sqlcron_newquery', '菜单 SQL任务 新增查询类任务'),
+            ('sqlcron_list', '获得任务列表'),
+            ('sqlcron_newexec', '新增更改类任务'),
+            ('sqlcron_newquery', '新增查询类任务'),
+            ('sqlcron_switch', '开关任务（暂停/继续）'),
+            ('sqlcron_stop', '停止任务'),
         )
 
 
@@ -763,3 +788,59 @@ class SlowQueryHistory(models.Model):
         index_together = ('hostname_max', 'ts_min')
         verbose_name = u'慢日志明细'
         verbose_name_plural = u'慢日志明细'
+
+
+class SqlCron(models.Model):
+    tid = models.OneToOneField(Schedule, db_column='tid', on_delete=models.CASCADE, blank=False, null=True)
+    task_name = models.CharField('任务名称', max_length=64, blank=False, null=False, default='')
+    demand_url = models.CharField('需求链接', max_length=500, blank=True, null=True, default='')
+    type = models.IntegerField('任务类型 0、未知，1、更改类，2、查询类', choices=((0, '未知'), (1, '更改类'), (2, '查询类')), default=0)
+    status = models.IntegerField('任务状态', choices=((0, '未知状态'), (1, '待审核'), (2, '审核不通过'), (3, '审核取消'), (4, '正常'), (5, '已停止')), blank=True, null=False, default=0)
+    group_id = models.IntegerField('组ID',  blank=False, null=False, default=0)
+    group_name = models.CharField('组名称', max_length=100, blank=False, null=False, default='')
+    instance = models.ForeignKey(Instance, db_column='instance', on_delete=models.CASCADE, blank=False, null=False)
+    db_name = models.CharField('数据库', max_length=64, blank=False, null=False, default='')
+    is_backup = models.BooleanField('是否备份', choices=((False, '否'), (True, '是'),), default=True)
+    engineer = models.CharField('发起人', max_length=30, blank=False, null=False, default='')
+    engineer_display = models.CharField('发起人中文名', max_length=50, blank=False, null=False, default='')
+    receivers = models.ManyToManyField(Users, related_name='receivers', blank=True)
+    cc_list = models.CharField('其他的接收邮箱', max_length=128, blank=True, null=False, default='')
+    audit_auth_groups = models.CharField('审批权限组列表', max_length=255, blank=False, null=False, default='')
+    is_manual = models.IntegerField('是否原生执行', choices=((0, '否'), (1, '是')), default=0)
+    create_time = models.DateTimeField('创建时间', auto_now_add=True)
+
+    class Meta:
+        managed = True
+        db_table = 'sqlcron'
+        verbose_name = u'SQL任务'
+        verbose_name_plural = u'SQL任务'
+
+
+class SqlCronDetail(models.Model):
+    """
+    存放各个SqlCron工单的SQL|审核内容
+    可定期归档或清理历史数据，也可通过``alter table sql_workflow_content row_format=compressed; ``来进行压缩
+    """
+    sqlcron = models.OneToOneField(SqlCron, on_delete=models.CASCADE)
+    sqlcron_content = models.TextField('具体Sql任务内容')
+    review_content = models.TextField('自动审核内容的JSON格式')
+    # execute_result = models.TextField('执行结果的JSON格式', blank=True)
+
+    def __str__(self):
+        return self.sqlcron.task_name
+
+    class Meta:
+        managed = True
+        db_table = 'sqlcron_detail'
+        verbose_name = u'Sql任务详情'
+        verbose_name_plural = u'Sql任务详情'
+
+
+class SqlCronLog(models.Model):
+    cid = models.ForeignKey(SqlCron, db_column='cid', on_delete=models.CASCADE)
+
+    class Meta:
+        managed = True
+        db_table = 'sqlcron_log'
+        verbose_name = u'SQL任务日志'
+        verbose_name_plural = u'SQL任务日志'

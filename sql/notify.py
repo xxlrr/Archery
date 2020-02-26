@@ -169,7 +169,7 @@ def notify_for_audit(audit_id, **kwargs):
         msg_sender.send_wx2user(msg_title + '\n' + msg_content, user_list)
 
 
-def notify_for_execute(workflow):
+def notify_for_execute(workflow, **kwargs):
     """
     工单执行结束的通知
     :param workflow:
@@ -178,6 +178,7 @@ def notify_for_execute(workflow):
     # 判断是否开启消息通知，未开启直接返回
     sys_config = SysConfig()
     wx_status = sys_config.get('wx')
+    filename_list = kwargs.get('filename_list')
 
     if not sys_config.get('mail') and not sys_config.get('ding') and not sys_config.get('ding_to_person') \
             and not wx_status:
@@ -204,12 +205,13 @@ def notify_for_execute(workflow):
     # 处理接收人信息
     msg_to_email = [user.email for user in msg_to if user.email]
     msg_cc_email = [user.email for user in msg_cc if user.email]
+    msg_cc_email.extend([user.email for user in workflow.receivers.all() if user.email])
     msg_to_ding_user = [user.ding_user_id for user in msg_to if user.ding_user_id]
 
     # 判断是发送钉钉还是发送邮件
     msg_sender = MsgSender()
     if sys_config.get('mail'):
-        msg_sender.send_email(msg_title, msg_content, msg_to_email, list_cc_addr=msg_cc_email)
+        msg_sender.send_email(msg_title, msg_content, msg_to_email, list_cc_addr=msg_cc_email, filename_list=filename_list)
     if sys_config.get('ding'):
         # 钉钉通知申请人，审核人，抄送DBA
         webhook_url = ResourceGroup.objects.get(group_id=workflow.group_id).ding_webhook
