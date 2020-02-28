@@ -8,7 +8,7 @@ import sql.query_privileges
 import sql.sql_optimize
 from common import auth, config, workflow, dashboard, check, oidcrp
 from sql import views, sql_workflow, sql_analyze, query, slowlog, instance, instance_account, db_diagnostic, \
-    resource_group, binlog, data_dictionary, sqlcron
+    resource_group, binlog, data_dictionary, sqlcron, host
 from sql.utils import tasks
 from common.utils import ding_api
 
@@ -152,4 +152,11 @@ urlpatterns = [
     path('sqlcron/pause/',  sqlcron.pause),
     path('sqlcron/resume/', sqlcron.resume),
     path('sqlcron/stop/', sqlcron.stop),
+
+
+    # for host
+    path('host/', views.host),
+    path('host/list/', host.lists),
+    path('host/check/', host.check),
+    path('host/login/<int:host_id>', host.login),
 ]

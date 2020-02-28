@@ -656,6 +656,9 @@ class Permission(models.Model):
             ('sqlcron_newquery', '新增查询类任务'),
             ('sqlcron_switch', '开关任务（暂停/继续）'),
             ('sqlcron_stop', '停止任务'),
+
+            # for host
+            ('menu_host', '菜单 主机管理'),
         )
 
 
@@ -790,57 +793,94 @@ class SlowQueryHistory(models.Model):
         verbose_name_plural = u'慢日志明细'
 
 
-class SqlCron(models.Model):
-    tid = models.OneToOneField(Schedule, db_column='tid', on_delete=models.CASCADE, blank=False, null=True)
-    task_name = models.CharField('任务名称', max_length=64, blank=False, null=False, default='')
-    demand_url = models.CharField('需求链接', max_length=500, blank=True, null=True, default='')
-    type = models.IntegerField('任务类型 0、未知，1、更改类，2、查询类', choices=((0, '未知'), (1, '更改类'), (2, '查询类')), default=0)
-    status = models.IntegerField('任务状态', choices=((0, '未知状态'), (1, '待审核'), (2, '审核不通过'), (3, '审核取消'), (4, '正常'), (5, '已停止')), blank=True, null=False, default=0)
-    group_id = models.IntegerField('组ID',  blank=False, null=False, default=0)
-    group_name = models.CharField('组名称', max_length=100, blank=False, null=False, default='')
-    instance = models.ForeignKey(Instance, db_column='instance', on_delete=models.CASCADE, blank=False, null=False)
-    db_name = models.CharField('数据库', max_length=64, blank=False, null=False, default='')
-    is_backup = models.BooleanField('是否备份', choices=((False, '否'), (True, '是'),), default=True)
-    engineer = models.CharField('发起人', max_length=30, blank=False, null=False, default='')
-    engineer_display = models.CharField('发起人中文名', max_length=50, blank=False, null=False, default='')
-    receivers = models.ManyToManyField(Users, related_name='receivers', blank=True)
-    cc_list = models.CharField('其他的接收邮箱', max_length=128, blank=True, null=False, default='')
-    audit_auth_groups = models.CharField('审批权限组列表', max_length=255, blank=False, null=False, default='')
-    is_manual = models.IntegerField('是否原生执行', choices=((0, '否'), (1, '是')), default=0)
-    create_time = models.DateTimeField('创建时间', auto_now_add=True)
+# class SqlCron(models.Model):
+#     tid = models.OneToOneField(Schedule, db_column='tid', on_delete=models.CASCADE, blank=False, null=True)
+#     task_name = models.CharField('任务名称', max_length=64, blank=False, null=False, default='')
+#     demand_url = models.CharField('需求链接', max_length=500, blank=True, null=True, default='')
+#     type = models.IntegerField('任务类型 0、未知，1、更改类，2、查询类', choices=((0, '未知'), (1, '更改类'), (2, '查询类')), default=0)
+#     status = models.IntegerField('任务状态', choices=((0, '未知状态'), (1, '待审核'), (2, '审核不通过'), (3, '审核取消'), (4, '正常'), (5, '已停止')), blank=True, null=False, default=0)
+#     group_id = models.IntegerField('组ID',  blank=False, null=False, default=0)
+#     group_name = models.CharField('组名称', max_length=100, blank=False, null=False, default='')
+#     instance = models.ForeignKey(Instance, db_column='instance', on_delete=models.CASCADE, blank=False, null=False)
+#     db_name = models.CharField('数据库', max_length=64, blank=False, null=False, default='')
+#     is_backup = models.BooleanField('是否备份', choices=((False, '否'), (True, '是'),), default=True)
+#     engineer = models.CharField('发起人', max_length=30, blank=False, null=False, default='')
+#     engineer_display = models.CharField('发起人中文名', max_length=50, blank=False, null=False, default='')
+#     receivers = models.ManyToManyField(Users, related_name='receivers', blank=True)
+#     cc_list = models.CharField('其他的接收邮箱', max_length=128, blank=True, null=False, default='')
+#     audit_auth_groups = models.CharField('审批权限组列表', max_length=255, blank=False, null=False, default='')
+#     is_manual = models.IntegerField('是否原生执行', choices=((0, '否'), (1, '是')), default=0)
+#     create_time = models.DateTimeField('创建时间', auto_now_add=True)
+#
+#     class Meta:
+#         managed = True
+#         db_table = 'sqlcron'
+#         verbose_name = u'SQL任务'
+#         verbose_name_plural = u'SQL任务'
+#
+#
+# class SqlCronDetail(models.Model):
+#     """
+#     存放各个SqlCron工单的SQL|审核内容
+#     可定期归档或清理历史数据，也可通过``alter table sql_workflow_content row_format=compressed; ``来进行压缩
+#     """
+#     sqlcron = models.OneToOneField(SqlCron, on_delete=models.CASCADE)
+#     sqlcron_content = models.TextField('具体Sql任务内容')
+#     review_content = models.TextField('自动审核内容的JSON格式')
+#     # execute_result = models.TextField('执行结果的JSON格式', blank=True)
+#
+#     def __str__(self):
+#         return self.sqlcron.task_name
+#
+#     class Meta:
+#         managed = True
+#         db_table = 'sqlcron_detail'
+#         verbose_name = u'Sql任务详情'
+#         verbose_name_plural = u'Sql任务详情'
+#
+#
+# class SqlCronLog(models.Model):
+#     cid = models.ForeignKey(SqlCron, db_column='cid', on_delete=models.CASCADE)
+#
+#     class Meta:
+#         managed = True
+#         db_table = 'sqlcron_log'
+#         verbose_name = u'SQL任务日志'
+#         verbose_name_plural = u'SQL任务日志'
+
+
+class Host(models.Model):
+    """"Host info"""
+    host_id = models.AutoField('host id', primary_key=True)
+    host_name = models.CharField('host name', max_length=32)
+    host_addr = models.CharField('host address', max_length=64)
+    ssh_port = models.IntegerField('ssh port', blank=True, default=22)
+    ssh_user = models.CharField('ssh user', max_length=32, blank=True, default='')
+    ssh_password = fields.EncryptedCharField(verbose_name='ssh password', max_length=128, default='', blank=True)
+    create_time = models.DateTimeField('create time', auto_now_add=True)
+    update_time = models.DateTimeField('update time', auto_now=True)
 
     class Meta:
         managed = True
-        db_table = 'sqlcron'
-        verbose_name = u'SQL任务'
-        verbose_name_plural = u'SQL任务'
-
-
-class SqlCronDetail(models.Model):
-    """
-    存放各个SqlCron工单的SQL|审核内容
-    可定期归档或清理历史数据，也可通过``alter table sql_workflow_content row_format=compressed; ``来进行压缩
-    """
-    sqlcron = models.OneToOneField(SqlCron, on_delete=models.CASCADE)
-    sqlcron_content = models.TextField('具体Sql任务内容')
-    review_content = models.TextField('自动审核内容的JSON格式')
-    # execute_result = models.TextField('执行结果的JSON格式', blank=True)
+        db_table = 'sql_host'
+        verbose_name = u'主机列表'
+        verbose_name_plural = u'主机列表'
 
     def __str__(self):
-        return self.sqlcron.task_name
+        return self.host_name
+
+
+class MyCnf(models.Model):
+    """
+    配置信息表
+    """
+    item = models.CharField('配置项', max_length=200, primary_key=True)
+    value = fields.EncryptedCharField(verbose_name='配置项值', max_length=500)
+    description = models.CharField('描述', max_length=200, default='', blank=True)
 
     class Meta:
         managed = True
-        db_table = 'sqlcron_detail'
-        verbose_name = u'Sql任务详情'
-        verbose_name_plural = u'Sql任务详情'
+        db_table = 'sql_mycnf'
+        verbose_name = u'mysql配置'
+        verbose_name_plural = u'mysql配置'
 
-
-class SqlCronLog(models.Model):
-    cid = models.ForeignKey(SqlCron, db_column='cid', on_delete=models.CASCADE)
-
-    class Meta:
-        managed = True
-        db_table = 'sqlcron_log'
-        verbose_name = u'SQL任务日志'
-        verbose_name_plural = u'SQL任务日志'

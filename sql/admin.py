@@ -5,7 +5,7 @@ from django.contrib.auth.admin import UserAdmin
 # Register your models here.
 from .models import Users, Instance, SqlWorkflow, SqlWorkflowContent, QueryLog, DataMaskingColumns, DataMaskingRules, \
     AliyunRdsConfig, ResourceGroup, ResourceGroup2User, ResourceGroup2Instance, QueryPrivilegesApply, \
-    QueryPrivileges, InstanceAccount, InstanceDatabase, \
+    QueryPrivileges, InstanceAccount, InstanceDatabase, Host, \
     WorkflowAudit, WorkflowLog, ParamTemplate, ParamHistory, InstanceTag, InstanceTagRelations
 
 
@@ -222,3 +222,10 @@ class ParamHistoryAdmin(admin.ModelAdmin):
 class AliRdsConfigAdmin(admin.ModelAdmin):
     list_display = ('instance', 'rds_dbinstanceid', 'is_enable')
     search_fields = ['instance__instance_name', 'rds_dbinstanceid']
+
+
+@admin.register(Host)
+class HostAdmin(admin.ModelAdmin):
+    list_display = ('host_id', 'host_name', 'host_addr', 'ssh_port', 'create_time')
+    search_fields = ('host_id', 'host_name', 'host_addr')
+    list_display_links = ('host_id', 'host_name', 'host_addr')

@@ -217,6 +217,17 @@
                             <!-- /.nav-second-level -->
                         </li>
                     {% endif %}
+                    {% if perms.sql.menu_host %}
+                        <li>
+                            <a href="#"><i class="fa fa-sitemap fa-fw"></i> 主机管理<span class="fa arrow"></span></a>
+                            <ul class="nav nav-second-level">
+                                <li>
+                                    <a href="/host/">主机列表</a>
+                                </li>
+                            </ul>
+                            <!-- /.nav-second-level -->
+                        </li>
+                    {% endif %}
                     {% if perms.sql.menu_tools %}
                         <li>
                             <a href="#"><i class="fa fa-plug fa-fw"></i> 工具插件<span class="fa arrow"></span></a>

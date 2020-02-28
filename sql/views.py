@@ -590,3 +590,10 @@ def sqlcrondetail(request, workflow_id):
                         'I':  f'每{schedule.minutes}分钟执行一次'}[schedule.schedule_type]
     }
     return render(request, 'sqlcron/detail.html', context)
+
+
+@permission_required('sql.menu_host', raise_exception=True)
+def host(request):
+    """主机管理页面"""
+    # 获取主机标签
+    return render(request, 'host.html')
