@@ -363,13 +363,15 @@
             // btn_log
             btn_log = '<button class="btn btn-warning btn-xs" workflow_id="' + row.id + '" onclick="getLog(this)">日志</button>';
 
-            return btn_log + '\n' + btn_switch + '\n' + btn_stop;
+            // return btn_log + '\n' + btn_switch + '\n' + btn_stop;
+            return btn_log + '\n' + btn_stop;
+
          }
 
          //终止任务
          function stop(obj) {
-            if (false == confirm("请注意，任务终止后无法恢复是否继续？")) {
-                return
+            if (!(stop_remark = prompt('请填写终止原因'))){
+                return false;
             }
 
             var workflow_id = $(obj).attr("workflow_id");
@@ -379,6 +381,7 @@
                 dataType: "json",
                 data: {
                     workflow_id: workflow_id,
+                    stop_remark: stop_remark,
                 },
                 complete: function () {
                 },

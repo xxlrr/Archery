@@ -443,9 +443,12 @@ def resume(request):
 def stop(request):
     user = request.user
     workflow_id = request.POST.get('workflow_id')
+    stop_remark = request.POST.get('stop_remark')
 
     if not workflow_id:
         return JsonResponse({'status': 1, 'msg': '参数不完整，请确认后提交', 'data': []})
+    if not stop_remark:
+        return JsonResponse({'status': 1, 'msg': '终止原因不能为空', 'data': []})
 
     try:
         group_list = user_groups(user)
@@ -469,9 +472,9 @@ def stop(request):
         audit_id = Audit.detail_by_workflow_id(workflow_id=workflow_id,
                                                workflow_type=WorkflowDict.workflow_type['sqlreview']).audit_id
         Audit.add_log(audit_id=audit_id,
-                      operation_type=5,
-                      operation_type_desc='执行工单',
-                      operation_info='执行结果：已停止任务',
+                      operation_type=6,
+                      operation_type_desc='终止执行',
+                      operation_info='终止原因：{}'.format(stop_remark),
                       operator=user.username,
                       operator_display=user.display,
                       )
