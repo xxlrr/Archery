@@ -68,7 +68,7 @@ def sign_out(request):
 
 
 def callback(request):
-    response = request.environ["QUERY_STRING"]
+    response = request.META["QUERY_STRING"]
     try:
         aresp = _client.parse_response(AuthorizationResponse, info=response, sformat="urlencoded")
         assert aresp["state"] == request.session["state"]
